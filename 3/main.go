@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 )
 
 const (
@@ -82,8 +83,8 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(f)
-	var sum1, sum2 int
-	do := true
+	var sum1, sum1r, sum2, sum2r int
+	do, dor := true, true
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -94,7 +95,52 @@ func main() {
 
 		p2, do = parse(line, do, true)
 		sum2 += p2
+
+		var r1, r2 int
+		r1, _ = doRegex(line, true, false)
+		sum1r += r1
+		r2, dor = doRegex(line, dor, true)
+		sum2r += r2
 	}
 
 	fmt.Println(sum1, sum2)
+	fmt.Println("regex", sum1r, sum2r)
+}
+
+func doRegex(line string, do bool, part2 bool) (int, bool) {
+	var re *regexp.Regexp
+	if part2 {
+		re = regexp.MustCompile(`mul\((?<first>\d{1,3}),(?<second>\d{1,3})\)|do\(\)|don't\(\)`)
+	} else {
+		re = regexp.MustCompile(`mul\((?<first>\d{1,3}),(?<second>\d{1,3})\)`)
+	}
+
+	matches := re.FindAllStringSubmatch(line, -1)
+
+	var first, second, total int
+	for _, m := range matches {
+		if m[0] == "do()" {
+			do = true
+			continue
+		}
+		if m[0] == "don't()" {
+			do = false
+			continue
+		}
+
+		if !do {
+			continue
+		}
+
+		if _, err := fmt.Sscanf(m[1], "%d", &first); err != nil {
+			panic(err)
+		}
+		if _, err := fmt.Sscanf(m[2], "%d", &second); err != nil {
+			panic(err)
+		}
+
+		total += first * second
+	}
+
+	return total, do
 }
