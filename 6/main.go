@@ -36,8 +36,8 @@ func main() {
 	start := findStart(grid)
 	dir := Coord{0, -1} // UP
 
-	part1(start, dir, grid)
-	part2(start, dir, grid)
+	visit := part1(start, dir, grid)
+	part2(start, dir, grid, visit)
 }
 
 type Position struct {
@@ -75,10 +75,14 @@ func isLoop(c, dir Coord, grid [][]byte) bool {
 	return false
 }
 
-func part2(start Coord, dir Coord, grid [][]byte) {
+func part2(start Coord, dir Coord, grid [][]byte, visit map[Coord]struct{}) {
 	loops := 0
 	for y, r := range grid {
 		for x := range r {
+			if _, ok := visit[Coord{x, y}]; !ok {
+				continue
+			}
+
 			orig := grid[y][x]
 			grid[y][x] = '#'
 			if isLoop(start, dir, grid) {
@@ -91,7 +95,7 @@ func part2(start Coord, dir Coord, grid [][]byte) {
 	fmt.Println(loops)
 }
 
-func part1(c Coord, dir Coord, grid [][]byte) {
+func part1(c Coord, dir Coord, grid [][]byte) map[Coord]struct{} {
 	visit := map[Coord]struct{}{}
 	visit[c] = struct{}{}
 
@@ -116,22 +120,21 @@ func part1(c Coord, dir Coord, grid [][]byte) {
 	}
 
 	fmt.Println(len(visit))
+	printVisit(grid, visit)
+	return visit
 }
 
 func printVisit(grid [][]byte, visit map[Coord]struct{}) {
-	for c := range visit {
-		grid[c.y][c.x] = 'X'
-	}
-
 	fmt.Println()
-	for _, r := range grid {
-		for _, c := range r {
+	for y, r := range grid {
+		for x, c := range r {
+			if _, ok := visit[Coord{x, y}]; ok {
+				c = 'X'
+			}
 			fmt.Printf("%s", string(c))
 		}
 		fmt.Println()
 	}
-
-	fmt.Println(len(visit))
 }
 
 func findStart(grid [][]byte) Coord {
