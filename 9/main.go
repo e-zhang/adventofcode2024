@@ -69,10 +69,11 @@ func checksum(files []int) int {
 
 // part1
 func moveBlocks(files []int) []int {
+	last := 0
 	for i := len(files) - 1; i >= 0; i-- {
 		val := files[i]
 		space := -1
-		for j := 0; j < i; j++ {
+		for j := last; j < i; j++ {
 			if files[j] == -1 {
 				space = j
 				break
@@ -83,6 +84,7 @@ func moveBlocks(files []int) []int {
 			break
 		}
 
+		last = space
 		files[space] = val
 		files[i] = -1
 	}
@@ -101,19 +103,22 @@ func moveFiles(files []int) []int {
 
 		f := files[fileEnd+1 : i+1]
 
+		// look for empty from beginning
 		for j := 0; j < i-len(f); {
 			if files[j] >= 0 {
 				j++
 				continue
 			}
+			// found a free space
 			freeEnd := j
+			// look for enough free spaces for the whole file
 			for ; freeEnd < j+len(f); freeEnd++ {
 				if files[freeEnd] >= 0 {
 					break
 				}
 			}
 
-			// free
+			// has enough free spaces
 			if freeEnd == j+len(f) {
 				copy(files[j:freeEnd], f)
 				for x := range f {
