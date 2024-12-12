@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -16,8 +17,24 @@ var (
 	}
 )
 
+var VERBOSE bool
+var FILE string
+
+func init() {
+	flag.BoolVar(&VERBOSE, "v", false, "print out extra debug info")
+
+	flag.Parse()
+	FILE = flag.Arg(0)
+}
+
+func debug(a ...any) {
+	if VERBOSE {
+		fmt.Println(a...)
+	}
+}
+
 func main() {
-	f, err := os.Open("input")
+	f, err := os.Open(FILE)
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +75,7 @@ func main() {
 			price1 := a * perim
 			sides := r.Sides()
 			price2 := a * sides
-			fmt.Println(string(r.plant), a, perim, sides)
+			debug(string(r.plant), a, perim, sides)
 			total1 += price1
 			total2 += price2
 			regions = append(regions, r)
