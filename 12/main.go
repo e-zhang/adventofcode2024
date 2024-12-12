@@ -54,11 +54,11 @@ func main() {
 
 			r := CreateRegion(col, pos, garden)
 			a := r.Area()
-			peri := r.Perimeter()
-			price1 := a * peri
+			perim := r.Perimeter()
+			price1 := a * perim
 			sides := r.Sides()
 			price2 := a * sides
-			fmt.Println(string(r.plant), a, peri, sides)
+			fmt.Println(string(r.plant), a, perim, sides)
 			total1 += price1
 			total2 += price2
 			regions = append(regions, r)
@@ -87,7 +87,7 @@ func (r Region) Area() int {
 }
 
 func (r Region) Perimeter() int {
-	peri := 0
+	perim := 0
 	for p := range r.plots {
 		sides := 4
 		for _, d := range NEIGHBORS {
@@ -96,10 +96,10 @@ func (r Region) Perimeter() int {
 				sides--
 			}
 		}
-		peri += sides
+		perim += sides
 	}
 
-	return peri
+	return perim
 }
 
 type key struct {
