@@ -24,12 +24,12 @@ func main() {
 	for _, s := range stones {
 		sum += BlinkTimes(s, 25, seen)
 	}
-	fmt.Println(sum)
+	fmt.Println(sum, BlinkCount(stones, 25))
 	sum = 0
 	for _, s := range stones {
 		sum += BlinkTimes(s, 75, seen)
 	}
-	fmt.Println(sum)
+	fmt.Println(sum, BlinkCount(stones, 75))
 }
 
 type step struct {
@@ -37,12 +37,40 @@ type step struct {
 	i     int
 }
 
+func BlinkCount(s []string, iter int) int {
+	stones := map[string]int{}
+	for _, x := range s {
+		stones[x] = 1
+	}
+
+	for i := 0; i < iter; i++ {
+		next := map[string]int{}
+		for x, qty := range stones {
+			n := BlinkOnce(x)
+			for _, y := range n {
+				if v, ok := next[y]; ok {
+					next[y] = v + qty
+				} else {
+					next[y] = qty
+				}
+			}
+		}
+		stones = next
+	}
+
+	sum := 0
+	for _, qty := range stones {
+		sum += qty
+	}
+	return sum
+}
+
 func BlinkTimes(stone string, iter int, seen map[step]int) int {
 	if v, ok := seen[step{stone, iter}]; ok {
 		return v
 	}
 
-	next := BlinkOnce([]string{stone})
+	next := BlinkOnce(stone)
 
 	if iter == 1 {
 		seen[step{stone, iter}] = len(next)
@@ -58,26 +86,24 @@ func BlinkTimes(stone string, iter int, seen map[step]int) int {
 	return sum
 }
 
-func BlinkOnce(stones []string) []string {
+func BlinkOnce(s string) []string {
 	next := []string{}
-	for _, s := range stones {
-		switch {
-		case s == "0":
-			next = append(next, "1")
-		case len(s)%2 == 0:
-			next = append(next, s[:len(s)/2])
-			x := strings.TrimLeft(s[len(s)/2:], "0")
-			if len(x) == 0 {
-				x = "0"
-			}
-			next = append(next, x)
-		default:
-			var i int
-			if _, err := fmt.Sscanf(s, "%d", &i); err != nil {
-				panic(err)
-			}
-			next = append(next, fmt.Sprintf("%d", i*2024))
+	switch {
+	case s == "0":
+		next = append(next, "1")
+	case len(s)%2 == 0:
+		next = append(next, s[:len(s)/2])
+		x := strings.TrimLeft(s[len(s)/2:], "0")
+		if len(x) == 0 {
+			x = "0"
 		}
+		next = append(next, x)
+	default:
+		var i int
+		if _, err := fmt.Sscanf(s, "%d", &i); err != nil {
+			panic(err)
+		}
+		next = append(next, fmt.Sprintf("%d", i*2024))
 	}
 	return next
 }
