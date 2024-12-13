@@ -87,22 +87,30 @@ func main() {
 
 	scanner := bufio.NewScanner(f)
 	// machines := []Machine{}
-	tokens := 0
+	tokens1 := 0
+	tokens2 := 0
 	for scanner.Scan() {
 		m := Parse(scanner)
 		debug(m)
 
-		score := ScorePart2(m)
+		// score := ScoreIterative(m
+		score := ScoreWithOffset(m, 0)
 		if score > 0 {
-			debug(m)
-			tokens += score
+			debug(m, score)
+			tokens1 += score
+		}
+		score = ScoreWithOffset(m, OFFSET)
+		if score > 0 {
+			debug(m, score)
+			tokens2 += score
 		}
 	}
 
-	fmt.Println(tokens)
+	fmt.Println(tokens1, tokens2)
 }
 
-func ScorePart1(m Machine) int {
+// For part1 just iterate up to 100 and find the best score
+func ScoreIterative(m Machine) int {
 	min := -1
 	for a := 0; a < 100; a++ {
 		for b := 0; b < 100; b++ {
@@ -119,9 +127,9 @@ func ScorePart1(m Machine) int {
 	return min
 }
 
-func ScorePart2(m Machine) int {
-	m.Prize.x += OFFSET
-	m.Prize.y += OFFSET
+func ScoreWithOffset(m Machine, offset int) int {
+	m.Prize.x += offset
+	m.Prize.y += offset
 
 	//  system of equations
 	// a * m.A.x + b * m.B.x = m.Prize.x
@@ -132,7 +140,8 @@ func ScorePart2(m Machine) int {
 	// m.Prize.y / m.A.y - m.Prize.x / m.A.x = -b*m.B.x/m.A.x + b * m.B.y/m.A.y
 	// m.Prize.y / m.A.y - m.Prize.x / m.A.x = b * (-m.B.x/m.A.x + m.B.y/m.A.y)
 
-	bF := math.Round((float64(m.Prize.y)/float64(m.A.y) - float64(m.Prize.x)/float64(m.A.x)) / (-1*float64(m.B.x)/float64(m.A.x) + float64(m.B.y)/float64(m.A.y)))
+	bF := math.Round((float64(m.Prize.y)/float64(m.A.y) - float64(m.Prize.x)/float64(m.A.x)) /
+		(float64(m.B.y)/float64(m.A.y) - float64(m.B.x)/float64(m.A.x)))
 	aF := math.Round((float64(m.Prize.x) - bF*float64(m.B.x)) / float64(m.A.x))
 	a := int(aF)
 	b := int(bF)
