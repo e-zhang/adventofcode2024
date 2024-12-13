@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"math"
 	"os"
 )
 
@@ -138,13 +137,19 @@ func ScoreWithOffset(m Machine, offset int) int {
 	// (m.Prize.y - b * m.B.y)/m.A.y = (m.Prize.x - b * m.B.x)/m.A.x
 
 	// m.Prize.y / m.A.y - m.Prize.x / m.A.x = -b*m.B.x/m.A.x + b * m.B.y/m.A.y
-	// m.Prize.y / m.A.y - m.Prize.x / m.A.x = b * (-m.B.x/m.A.x + m.B.y/m.A.y)
 
-	bF := math.Round((float64(m.Prize.y)/float64(m.A.y) - float64(m.Prize.x)/float64(m.A.x)) /
-		(float64(m.B.y)/float64(m.A.y) - float64(m.B.x)/float64(m.A.x)))
-	aF := math.Round((float64(m.Prize.x) - bF*float64(m.B.x)) / float64(m.A.x))
-	a := int(aF)
-	b := int(bF)
+	// m.Prize.y * m.A.x - m.Prize.x * m.A.y = b  (m.B.y * m.A.x - m.B.x * m.A.y)
+	// (m.Prize.y * m.A.x - m.Prize.x * m.A.y) / (m.B.y * m.A.x - m.B.x * m.A.y)
+
+	// bF := math.Round((float64(m.Prize.y)/float64(m.A.y) - float64(m.Prize.x)/float64(m.A.x)) /
+	// 	(float64(m.B.y)/float64(m.A.y) - float64(m.B.x)/float64(m.A.x)))
+	// aF := math.Round((float64(m.Prize.x) - bF*float64(m.B.x)) / float64(m.A.x))
+
+	b := (m.Prize.y*m.A.x - m.Prize.x*m.A.y) / (m.B.y*m.A.x - m.B.x*m.A.y)
+	a := (m.Prize.x - b*m.B.x) / m.A.x
+
+	// a := int(aF)
+	// b := int(bF)
 
 	if a*m.A.x+b*m.B.x == m.Prize.x &&
 		a*m.A.y+b*m.B.y == m.Prize.y {
