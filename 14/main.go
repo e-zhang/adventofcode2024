@@ -44,34 +44,54 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(f)
-	robots := []*Robot{}
+	robots := []Robot{}
 	for scanner.Scan() {
 		line := scanner.Text()
 		robots = append(robots, Parse(line))
 	}
 
 	print(robots)
-	for i := 0; i < 1000000; i++ {
-		for _, r := range robots {
-			r.Move()
+	// part 1
+	newR := make([]Robot, len(robots))
+	for i, r := range robots {
+		newR[i] = r.MoveN(100)
+	}
+	part1 := SafetyFactor(newR)
+
+	part2 := 0
+	minSF := part1
+	for i := 0; i < MAX_X*MAX_Y; i++ {
+		for j, r := range robots {
+			newR[j] = r.MoveN(i)
 		}
-		if IsEasterEgg(robots) {
-			fmt.Println(i)
-			print(robots)
+
+		sf := SafetyFactor(newR)
+		if sf < minSF {
+			debug("=========")
+			debug(i, sf, minSF)
+			print(newR)
+			minSF = sf
+		}
+
+		if IsEasterEgg(newR) {
+			part2 = i
+			print(newR)
 			break
 		}
 	}
-
-	// quadrants := CalculateQuadrants(robots)
-	// sf := 1
-	// for _, q := range quadrants {
-	// 	sf *= q
-	// }
-	// fmt.Println(sf)
-
+	fmt.Println(part1, part2)
 }
 
-func print(robots []*Robot) {
+func SafetyFactor(robots []Robot) int {
+	quadrants := CalculateQuadrants(robots)
+	sf := 1
+	for _, q := range quadrants {
+		sf *= q
+	}
+	return sf
+}
+
+func print(robots []Robot) {
 	if !VERBOSE {
 		return
 	}
@@ -104,28 +124,32 @@ func (c Coord) Add(o Coord) Coord {
 	return Coord{c.x + o.x, c.y + o.y}
 }
 
+func (c Coord) Scale(n int) Coord {
+	return Coord{c.x * n, c.y * n}
+}
+
 type Robot struct {
 	p Coord
 	v Coord
 }
 
-func (r *Robot) Move() {
-	next := r.p.Add(r.v)
-	next.x = (next.x + MAX_X) % MAX_X
-	next.y = (next.y + MAX_Y) % MAX_Y
+func (r Robot) MoveN(n int) Robot {
+	next := r.p.Add(r.v.Scale(n))
+	next.x = (next.x + n*MAX_X) % MAX_X
+	next.y = (next.y + n*MAX_Y) % MAX_Y
 
-	r.p = next
+	return Robot{next, r.v}
 }
 
-func Parse(line string) *Robot {
+func Parse(line string) Robot {
 	var p, v Coord
 	if _, err := fmt.Sscanf(line, "p=%d,%d v=%d,%d", &p.x, &p.y, &v.x, &v.y); err != nil {
 		panic(err)
 	}
-	return &Robot{p, v}
+	return Robot{p, v}
 }
 
-func CalculateQuadrants(robots []*Robot) []int {
+func CalculateQuadrants(robots []Robot) []int {
 	quadrants := make([]int, 4)
 
 	midX := (MAX_X + 1) / 2
@@ -142,7 +166,7 @@ func CalculateQuadrants(robots []*Robot) []int {
 	return quadrants
 }
 
-func IsEasterEgg(robots []*Robot) bool {
+func IsEasterEgg(robots []Robot) bool {
 	// All unique locations
 	// seen := map[Coord]struct{}{}
 	// for _, r := range robots {
@@ -155,7 +179,6 @@ func IsEasterEgg(robots []*Robot) bool {
 	// return true
 
 	quads := CalculateQuadrants(robots)
-
 	for i, q := range quads {
 		imbalanced := true
 		for j, q2 := range quads {
