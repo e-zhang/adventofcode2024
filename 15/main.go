@@ -35,8 +35,31 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(f)
+	grid, moves, robot := parse(scanner)
+	grid2, robot2, boxes := expand(grid)
+
+	print(grid)
+	for _, m := range moves {
+		robot = Move(robot, grid, m)
+		// debug("Move", string(m), ":")
+		// print(grid)
+	}
+	fmt.Println(GPS(grid, 'O'))
+
+	print(grid2)
+	for i, m := range moves {
+		robot2 = Move2(robot2, grid2, m)
+		debug(i, "Move", string(m))
+		print(grid2)
+		invariants2(grid2, boxes)
+	}
+	fmt.Println(GPS(grid2, '['))
+
+}
+
+func parse(scanner *bufio.Scanner) ([][]byte, string, Coord) {
 	grid := [][]byte{}
-	var robot Coord
+	var r Coord
 	parseMoves := false
 	var moves string
 	for scanner.Scan() {
@@ -50,7 +73,7 @@ func main() {
 		if !parseMoves {
 			for i, c := range line {
 				if c == '@' {
-					robot = Coord{len(grid), i}
+					r = Coord{len(grid), i}
 				}
 			}
 			grid = append(grid, []byte(line))
@@ -58,10 +81,13 @@ func main() {
 			moves += line
 		}
 	}
-	debug(robot)
 
+	return grid, moves, r
+}
+
+func expand(grid [][]byte) ([][]byte, Coord, int) {
 	grid2 := [][]byte{}
-	var robot2 Coord
+	var r Coord
 	boxes := 0
 	for _, row := range grid {
 		row2 := []byte{}
@@ -71,7 +97,7 @@ func main() {
 				row2 = append(row2, col)
 				row2 = append(row2, col)
 			case '@':
-				robot2 = Coord{len(grid2), len(row2)}
+				r = Coord{len(grid2), len(row2)}
 				row2 = append(row2, col)
 				row2 = append(row2, '.')
 			case 'O':
@@ -84,30 +110,11 @@ func main() {
 		}
 		grid2 = append(grid2, row2)
 	}
-	debug(robot2, boxes, len(moves), GPS(grid2, '['))
-	print(grid2)
 
-	for i, m := range moves {
-		robot2 = Move2(robot2, grid2, m)
-		debug(i, "Move", string(m))
-		print(grid2)
-		if n := NumBoxes(grid2); n != boxes {
-			panic(n)
-		}
-	}
-	print(grid2)
-	fmt.Println(GPS(grid2, '['))
-
-	// for _, m := range moves {
-	// 	robot = Move(robot, grid, m)
-	// 	debug("Move", string(m), ":")
-	// 	print(grid)
-	// }
-
-	// fmt.Println(GPS(grid, 'O'))
+	return grid2, r, boxes
 }
 
-func NumBoxes(grid [][]byte) int {
+func invariants2(grid [][]byte, boxes int) {
 	count := 0
 	for _, row := range grid {
 		for _, col := range row {
@@ -117,20 +124,9 @@ func NumBoxes(grid [][]byte) int {
 		}
 	}
 
-	return count
-}
-
-func GPS(grid [][]byte, char byte) int {
-	sum := 0
-	for r, row := range grid {
-		for c, col := range row {
-			if col == char {
-				gps := r*100 + c
-				sum += gps
-			}
-		}
+	if count != boxes {
+		panic(count)
 	}
-	return sum
 }
 
 func print(grid [][]byte) {
@@ -145,6 +141,19 @@ func print(grid [][]byte) {
 		fmt.Println()
 	}
 	fmt.Println()
+}
+
+func GPS(grid [][]byte, char byte) int {
+	sum := 0
+	for r, row := range grid {
+		for c, col := range row {
+			if col == char {
+				gps := r*100 + c
+				sum += gps
+			}
+		}
+	}
+	return sum
 }
 
 type Coord struct {
@@ -198,50 +207,54 @@ func Move(robot Coord, grid [][]byte, move rune) Coord {
 	return robot
 }
 
+func isBox(v byte) bool {
+	return v == '[' || v == ']'
+}
+
+func LookForBoxes(coords []Coord, grid [][]byte) bool {
+	isWall := false
+	hasBox := false
+	for _, c := range coords {
+		v := grid[c.row][c.col]
+		if v == '#' {
+			isWall = true
+		}
+		if isBox(v) {
+			hasBox = true
+		}
+	}
+
+	return !isWall && hasBox
+}
+
 func Move2(robot Coord, grid [][]byte, move rune) Coord {
 	dir := Dir(move)
 	next := robot.Add(dir)
-	curr := []Coord{next}
+	q := []Coord{next}
 	var boxes []Coord
-	for {
-		isWall := false
-		isBox := false
-		for _, c := range curr {
-			pos := grid[c.row][c.col]
-			if pos == '#' {
-				isWall = true
-			}
-			if pos == '[' || pos == ']' {
-				isBox = true
-			}
-		}
-
-		if isWall || !isBox {
-			break
-		}
-
+	for LookForBoxes(q, grid) {
 		if dir.row == 0 {
-			if len(curr) != 1 {
-				panic(curr)
+			if len(q) != 1 {
+				panic(q)
 			}
-			n := curr[0].Add(dir)
-			boxes = append(boxes, curr[0], n)
-			curr = []Coord{n.Add(dir)}
+			pair := q[0].Add(dir)
+			boxes = append(boxes, q[0], pair)
+			q = []Coord{pair.Add(dir)}
 		} else {
-			var nCurr []Coord
+			var n []Coord
 			seen := map[Coord]struct{}{}
-			for _, c := range curr {
+			for _, c := range q {
 				if _, ok := seen[c]; ok {
 					continue
 				}
 
-				pos := grid[c.row][c.col]
-				if pos != '[' && pos != ']' {
+				v := grid[c.row][c.col]
+				if !isBox(v) {
 					continue
 				}
 
 				var pair Coord
-				if pos == '[' {
+				if v == '[' {
 					pair = c.Add(Coord{0, 1})
 				} else {
 					pair = c.Add(Coord{0, -1})
@@ -250,31 +263,33 @@ func Move2(robot Coord, grid [][]byte, move rune) Coord {
 				seen[c] = struct{}{}
 				seen[pair] = struct{}{}
 				boxes = append(boxes, c, pair)
-				nCurr = append(nCurr, c.Add(dir), pair.Add(dir))
+				n = append(n, c.Add(dir), pair.Add(dir))
 			}
-			curr = nCurr
+			q = n
 		}
 	}
 
-	isEmpty := true
-	for _, c := range curr {
-		pos := grid[c.row][c.col]
-		if pos != '.' {
-			isEmpty = false
-			break
-		}
+	if !isEmpty(q, grid) {
+		return robot
 	}
 
-	if isEmpty {
-		for i := len(boxes) - 1; i >= 0; i-- {
-			b := boxes[i]
-			n := b.Add(dir)
-			grid[n.row][n.col] = grid[b.row][b.col]
-			grid[b.row][b.col] = '.'
-		}
-		grid[next.row][next.col] = '@'
-		grid[robot.row][robot.col] = '.'
-		return next
+	for i := len(boxes) - 1; i >= 0; i-- {
+		b := boxes[i]
+		n := b.Add(dir)
+		grid[n.row][n.col] = grid[b.row][b.col]
+		grid[b.row][b.col] = '.'
 	}
-	return robot
+	grid[next.row][next.col] = '@'
+	grid[robot.row][robot.col] = '.'
+	return next
+}
+
+func isEmpty(coords []Coord, grid [][]byte) bool {
+	for _, c := range coords {
+		v := grid[c.row][c.col]
+		if v != '.' {
+			return false
+		}
+	}
+	return true
 }
