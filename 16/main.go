@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"container/heap"
 	"flag"
 	"fmt"
 	"os"
@@ -13,10 +14,7 @@ var (
 )
 
 var (
-	N = Coord{-1, 0}
 	E = Coord{0, 1}
-	S = Coord{1, 0}
-	W = Coord{0, -1}
 )
 
 func init() {
@@ -61,7 +59,8 @@ func main() {
 	// seen := map[key]int{}
 	// chain := path{-1, nil}
 	// score, _ := MazeDFS(start, E, end, []Coord{}, grid, 0, seen, &chain)
-	score, tiles := MazeBFS(start, E, end, grid)
+	// score, tiles := MazeBFS(start, E, end, grid)
+	score, tiles := MazeDijkstras(start, E, end, grid)
 	fmt.Println(score, tiles)
 }
 
@@ -186,6 +185,20 @@ type node struct {
 	path  []Coord
 }
 
+type priorityq []node
+
+func (p priorityq) Len() int           { return len(p) }
+func (p priorityq) Less(i, j int) bool { return p[i].score < p[j].score }
+func (p priorityq) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p *priorityq) Push(x any)        { *p = append(*p, x.(node)) }
+func (p *priorityq) Pop() any {
+	old := *p
+	n := len(old)
+	item := old[n-1]
+	*p = old[:n-1]
+	return item
+}
+
 func MazeBFS(pos, dir, end Coord, grid []string) (int, int) {
 	q := []node{{pos, dir, 0, nil}}
 	seen := map[key]int{}
@@ -234,4 +247,81 @@ func MazeBFS(pos, dir, end Coord, grid []string) (int, int) {
 	debug(best, len(tiles))
 	print(grid, tiles)
 	return best, len(tiles)
+}
+
+func MazeDijkstras(start, dir, end Coord, grid []string) (int, int) {
+	q := priorityq{{start, dir, 0, nil}}
+	heap.Init(&q)
+	dist := map[key]int{key{start, dir}: 0}
+	prevs := map[key][]key{}
+
+	best := 0
+
+	for q.Len() > 0 {
+		curr := heap.Pop(&q).(node)
+
+		if curr.pos == end {
+			if best == 0 || curr.score < best {
+				best = curr.score
+			}
+			continue
+		}
+
+		for _, n := range []node{
+			{curr.pos.Add(curr.dir), curr.dir, curr.score + 1, nil},
+			{curr.pos, curr.dir.Rotate(true), curr.score + 1000, nil},
+			{curr.pos, curr.dir.Rotate(false), curr.score + 1000, nil},
+		} {
+			if grid[n.pos.row][n.pos.col] == '#' {
+				continue
+			}
+
+			k := key{n.pos, n.dir}
+			v := dist[k]
+			if v == 0 || n.score <= v {
+				dist[k] = n.score
+				if n.score == v {
+					prevs[k] = append(prevs[k], key{curr.pos, curr.dir})
+				} else {
+					prevs[k] = []key{{curr.pos, curr.dir}}
+				}
+				heap.Push(&q, n)
+			}
+		}
+	}
+
+	tiles := 0
+	for k, v := range dist {
+		if k.pos == end && v == best {
+			tiles += backtrack(start, k.dir, end, grid, prevs)
+		}
+	}
+	return best, tiles
+}
+
+func backtrack(start, dir, end Coord, grid []string, prevs map[key][]key) int {
+	tiles := map[Coord]struct{}{}
+	seen := map[key]struct{}{}
+
+	q := []key{{end, dir}}
+	for len(q) > 0 {
+		pos := q[0]
+		q = q[1:]
+
+		if _, ok := seen[pos]; ok {
+			continue
+		}
+
+		seen[pos] = struct{}{}
+		tiles[pos.pos] = struct{}{}
+		if pos.pos == start {
+			continue
+		}
+
+		q = append(q, prevs[pos]...)
+	}
+
+	debug(len(tiles))
+	print(grid, tiles)
+	return len(tiles)
 }
