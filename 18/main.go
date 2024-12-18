@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
 var VERBOSE bool
@@ -56,13 +57,38 @@ func main() {
 	end := Coord{SIZE, SIZE}
 	fmt.Println(BFS(start, end, bytes[:PART1]))
 
-	for i := 0; i < len(bytes); i++ {
+	now := time.Now()
+	x := search(start, end, bytes)
+	fmt.Printf("%d,%d\n", x.x, x.y)
+	fmt.Println(time.Since(now))
+	for i := PART1; i < len(bytes); i++ {
 		s := BFS(start, end, bytes[:i])
 		if s < 0 {
-			fmt.Println(i, bytes[i-1])
+			c := bytes[i-1]
+			fmt.Printf("%d,%d\n", c.x, c.y)
 			break
 		}
 	}
+	fmt.Println(time.Since(now))
+}
+
+func search(start, end Coord, bytes []Coord) Coord {
+	low := PART1
+	high := len(bytes) - 1
+
+	for low <= high {
+		mid := (low + high) / 2
+
+		s := BFS(start, end, bytes[:mid+1])
+		if s < 0 {
+			high = mid - 1
+		} else {
+			low = mid + 1
+		}
+	}
+
+	debug(low, bytes[low])
+	return bytes[low]
 }
 
 type Coord struct {
