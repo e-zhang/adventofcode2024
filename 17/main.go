@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"math"
 	"os"
 	"strings"
 )
@@ -85,19 +84,30 @@ func main() {
 	debug(a, b, c, program)
 	fmt.Println("part1", join(Run(program, a, b, c)))
 
-	a = 1
+	a = part2(program)
+	fmt.Println("part2", a)
+	if o := join(Run(program, a, b, c)); o != prog {
+		panic(o)
+	}
+}
+
+func cmp(x, y []int) bool {
+	for i := 1; i <= len(x); i++ {
+		if y[len(y)-i] != x[len(x)-i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func part2(program []int) int {
+	a := 1
 	var out []int
 	for len(out) <= len(program) {
-		out = Run(program, a, b, c)
+		out = Run(program, a, 0, 0)
 		debug("run", a, out)
-		equals := true
-		for x := 1; x <= len(out); x++ {
-			if program[len(program)-x] != out[len(out)-x] {
-				equals = false
-				break
-			}
-		}
-		if equals {
+		if cmp(out, program) {
 			if len(out) == len(program) {
 				break
 			}
@@ -108,10 +118,8 @@ func main() {
 		a++
 		debug("===", a, len(out))
 	}
-	fmt.Println("part2", a)
-	if o := join(Run(program, a, b, c)); o != prog {
-		panic(o)
-	}
+
+	return a
 }
 
 func combo(operand int, a, b, c int) int {
@@ -137,7 +145,7 @@ func Run(program []int, a, b, c int) []int {
 		jmp := false
 		switch opcode {
 		case ADV:
-			a = int(float64(a) / math.Pow(2, float64(combo(operand, a, b, c))))
+			a = a / (1 << combo(operand, a, b, c))
 		case BXL:
 			b = b ^ operand
 		case BST:
@@ -152,9 +160,9 @@ func Run(program []int, a, b, c int) []int {
 		case OUT:
 			out = append(out, combo(operand, a, b, c)%8)
 		case BDV:
-			b = int(float64(a) / math.Pow(2, float64(combo(operand, a, b, c))))
+			b = a / (1 << combo(operand, a, b, c))
 		case CDV:
-			c = int(float64(a) / math.Pow(2, float64(combo(operand, a, b, c))))
+			c = a / (1 << combo(operand, a, b, c))
 		default:
 			panic(opcode)
 		}
