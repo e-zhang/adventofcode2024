@@ -11,8 +11,6 @@ import (
 var VERBOSE bool
 var FILE = "input"
 
-var ()
-
 func init() {
 	flag.BoolVar(&VERBOSE, "v", false, "print out extra debug info")
 
