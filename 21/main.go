@@ -56,53 +56,27 @@ func main() {
 		codes = append(codes, line)
 	}
 
-	complexity := 0
+	complexity1 := 0
+	complexity2 := 0
 	for _, code := range codes {
 		debug(code)
-		shortest := 0
+		shortest1 := 0
+		shortest2 := 0
 		start := Coord{3, 2}
 
 		cache := map[cacheKey]int{}
 		for _, c := range code {
-			moves1 := moveKeypad(string(c), start, numericKeypad)
-			// debug(moves1)
-			// for r := 0; r < 25; r++ {
-			// 	moves2 := []string{}
-			// 	debug(r, len(moves1))
-			// 	for _, m := range moves1 {
-			// 		ms := moveKeypad(m, Coord{0, 2}, directionalKeypad)
-			// 		moves2 = append(moves2, ms...)
-			// 		debug(r, m, ms)
-			// 	}
-			// 	moves1 = filterPaths(moves2)
-			// }
-			shortest += doDirectional(moves1, 25, cache)
-
-			// l := 0
-			// for _, m := range moves1 {
-			// 	if l == 0 || len(m) < l {
-			// 		l = len(m)
-			// 	}
-			// }
-			// // debug(moves1, short)
-
+			moves := moveKeypad(string(c), start, numericKeypad)
+			shortest1 += doDirectional(moves, 2, cache)
+			shortest2 += doDirectional(moves, 25, cache)
 			start = getKey(c, numericKeypad)
 		}
-		// // debug(moves2)
-		// for _, m := range moves1 {
-		// 	// ms := moveKeypad(m, Coord{0, 2}, directionalKeypad)
-		// 	// for _, i := range ms {
-		// 	if len(shortest) == 0 || len(m) < len(shortest) {
-		// 		shortest = m
-		// 	}
-		// 	// }
-		// }
-		debug(code, shortest)
-		debug(shortest, toNumber(code))
-		complexity += shortest * toNumber(code)
+		debug(code, shortest1, shortest2, toNumber(code))
+		complexity1 += shortest1 * toNumber(code)
+		complexity2 += shortest2 * toNumber(code)
 	}
 
-	fmt.Println(complexity)
+	fmt.Println(complexity1, complexity2)
 }
 
 func minLength(x []string) int {
@@ -113,37 +87,6 @@ func minLength(x []string) int {
 		}
 	}
 	return l
-}
-
-func doDirectional(moves []string, robots int, cache map[cacheKey]int) int {
-	if robots == 0 {
-		return minLength(moves)
-	}
-
-	shortest := 0
-	for _, m := range moves {
-		start := Coord{0, 2}
-		path := 0
-		for _, s := range m {
-			nextMoves := moveKeypad(string(s), start, directionalKeypad)
-			end := getKey(s, directionalKeypad)
-			k := cacheKey{start, end, robots}
-			if v, ok := cache[k]; ok {
-				path += v
-			} else {
-				seq := doDirectional(nextMoves, robots-1, cache)
-				path += seq
-				cache[k] = seq
-			}
-			start = end
-		}
-
-		if shortest == 0 || path < shortest {
-			shortest = path
-		}
-	}
-
-	return shortest
 }
 
 func toNumber(code string) int {
@@ -178,11 +121,6 @@ func (c Coord) ToDirection() string {
 	}
 
 	panic(c)
-}
-
-type node struct {
-	pos  Coord
-	path string
 }
 
 func abs(x int) int {
@@ -222,11 +160,16 @@ func moveKeypad(code string, start Coord, keypad []string) []string {
 		curr = k
 	}
 
-	// debug(path)
-	return filterPaths(paths)
+	// debug(paths)
+	return paths
 }
 
 func move(start, end Coord, keypad []string) []string {
+	type node struct {
+		pos  Coord
+		path string
+	}
+
 	q := []node{{start, ""}}
 
 	diff := Coord{end.row - start.row, end.col - start.col}
@@ -267,38 +210,36 @@ func move(start, end Coord, keypad []string) []string {
 		}
 	}
 
-	return filterPaths(paths)
+	return paths
 }
 
-func filterPaths(paths []string) []string {
-	changes := 0
-	for _, p := range paths {
-		count := 0
-		for i := 1; i < len(p); i++ {
-			if p[i] != p[i-1] {
-				count++
-			}
-		}
-
-		if changes == 0 || count < changes {
-			changes = count
-		}
-
+func doDirectional(moves []string, robots int, cache map[cacheKey]int) int {
+	if robots == 0 {
+		return minLength(moves)
 	}
 
-	newPaths := []string{}
-	for _, p := range paths {
-		count := 0
-		for i := 1; i < len(p); i++ {
-			if p[i] != p[i-1] {
-				count++
+	shortest := 0
+	for _, m := range moves {
+		start := Coord{0, 2}
+		path := 0
+		for _, s := range m {
+			nextMoves := moveKeypad(string(s), start, directionalKeypad)
+			end := getKey(s, directionalKeypad)
+			k := cacheKey{start, end, robots}
+			if v, ok := cache[k]; ok {
+				path += v
+			} else {
+				seq := doDirectional(nextMoves, robots-1, cache)
+				path += seq
+				cache[k] = seq
 			}
+			start = end
 		}
 
-		if count == changes {
-			newPaths = append(newPaths, p)
+		if shortest == 0 || path < shortest {
+			shortest = path
 		}
 	}
 
-	return newPaths
+	return shortest
 }
