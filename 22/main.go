@@ -42,66 +42,21 @@ func main() {
 		seeds = append(seeds, s)
 	}
 
-	// sum := 0
-	// for _, s := range seeds {
-	// 	seed := s
-	// 	for i := 0; i < 2000; i++ {
-	// 		s = Evolve(s)
-	// 	}
-	// 	debug(seed, s)
-	// 	sum += s
-	// }
-	// fmt.Println(sum)
-
-	// prices := [][]int{}
-	prices := []map[string]int{}
+	sequences := map[string]int{}
+	part1 := 0
 	for _, s := range seeds {
-		buyer := map[string]int{}
-		last := s % 10
-		changes := []int{}
-		for i := 0; i < 2000; i++ {
-			s = Evolve(s)
-			if len(changes) == 4 {
-				changes = changes[1:]
-			}
-			digit := s % 10
-			changes = append(changes, digit-last)
-
-			k := toString(changes)
-			if _, ok := buyer[k]; !ok {
-				buyer[k] = digit
-			}
-			last = digit
-			if i >= 4 && len(changes) != 4 {
-				panic(changes)
-			}
-		}
-		prices = append(prices, buyer)
+		part1 += doBuyer(s, sequences)
 	}
 
-	max := 0
-	seen := map[string]struct{}{}
-	for _, b := range prices {
-		for k := range b {
-			if _, ok := seen[k]; ok {
-				continue
-			}
-			seen[k] = struct{}{}
-			bananas := 0
-			for i, p := range prices {
-				bananas += p[k]
-
-				if (len(p)-i)*9 < max {
-					break
-				}
-			}
-			if bananas > max {
-				debug(bananas, k)
-				max = bananas
-			}
+	part2 := 0
+	for k, v := range sequences {
+		if v > part2 {
+			debug(k, v)
+			part2 = v
 		}
 	}
-	fmt.Println(max)
+
+	fmt.Println(part1, part2)
 }
 
 func toString(x []int) string {
@@ -116,47 +71,33 @@ func toString(x []int) string {
 	return s
 }
 
-func calcChanges(prices []int) []int {
+func doBuyer(seed int, sequences map[string]int) int {
+	buyer := map[string]int{}
+	s := seed
+	last := s % 10
 	changes := []int{}
-	for i := 1; i < 4; i++ {
-		changes = append(changes, prices[i]-prices[i-1])
-	}
-	return changes
-}
+	for i := 0; i < 2000; i++ {
+		s = Evolve(s)
+		digit := s % 10
 
-func cmp(x, y []int) bool {
-	for i := range x {
-		if x[i] != y[i] {
-			return false
+		// update changes tracking
+		if len(changes) == 4 {
+			changes = changes[1:]
 		}
-	}
-	return true
-}
+		changes = append(changes, digit-last)
+		if i >= 4 && len(changes) != 4 {
+			panic(changes)
+		}
 
-func checkSequences(idx int, prices [][]int) int {
-	buyer := prices[idx]
-	changes := calcChanges(buyer)
-	max := 0
-	for i := 4; i < len(buyer); i++ {
-		changes = append(changes[len(changes)-3:], buyer[i]-buyer[i-1])
-		sum := 0
-		for _, p := range prices {
-			pchanges := calcChanges(p)
-			for j := 4; j < len(p); j++ {
-				pchanges = append(pchanges[len(pchanges)-3:], p[j]-p[j-1])
-				if cmp(changes, pchanges) {
-					sum += p[j]
-					break
-				}
-			}
+		k := toString(changes)
+		if _, ok := buyer[k]; !ok {
+			buyer[k] = digit
+			sequences[k] += digit
 		}
-		// sum += buyer[i]
-		// debug("buyer", changes, sum)
-		if sum > max {
-			max = sum
-		}
+		last = digit
 	}
-	return max
+	debug(seed, s)
+	return s
 }
 
 func Evolve(secret int) int {
