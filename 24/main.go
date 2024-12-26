@@ -37,8 +37,6 @@ func main() {
 	wires := map[string]Wire{}
 	initial := true
 	z := []string{}
-	x := []string{}
-	y := []string{}
 	for scanner.Scan() {
 		line := scanner.Text()
 		if len(line) == 0 {
@@ -56,15 +54,6 @@ func main() {
 				panic(err)
 			}
 			wire = Value{v}
-
-			switch {
-			case strings.HasPrefix(w, "x"):
-				x = addBit(x, w)
-			case strings.HasPrefix(w, "y"):
-				y = addBit(y, w)
-			default:
-				panic(w)
-			}
 		} else {
 			var in1, in2, op string
 			if _, err := fmt.Sscanf(line, "%s %s %s -> %s", &in1, &op, &in2, &w); err != nil {
@@ -84,18 +73,13 @@ func main() {
 	zz := toNumber(z, wires)
 	fmt.Println(zz)
 
-	// diff := zz ^ (xx + yy)
-	// fmt.Printf("%b\n%b\n%b\n", zz, xx+yy, diff)
-	// i := 0
-	// for diff > 0 {
-	// 	if diff%2 == 1 {
-	// 		w := fmt.Sprintf("z%02d", i)
-	// 		debug(w, wires[w])
-	// 	}
+	swaps := findSwaps(z, wires)
+	sort.Strings(swaps)
+	fmt.Println(strings.Join(swaps, ","))
+}
 
-	// 	diff >>= 1
-	// 	i++
-	// }
+func findSwaps(z []string, wires map[string]Wire) []string {
+	swaps := []string{}
 
 	// adder is
 	// intermediates
@@ -105,8 +89,6 @@ func main() {
 	// cout = b OR c
 
 	// z = a^cin
-
-	swaps := []string{}
 	var cin string
 	for i, zb := range z {
 		xb := fmt.Sprintf("x%02d", i)
@@ -114,22 +96,12 @@ func main() {
 
 		g := wires[zb].(Gate)
 		if i == 0 {
-			ok := g.op == "XOR" && (g.in1 == xb || g.in2 == xb) && (g.in1 == yb || g.in2 == yb)
-			if !ok {
-				panic("here")
+			z := findGate(xb, yb, "XOR", wires)
+			if z == "" {
+				panic("bit0")
 			}
 
-			for k, w := range wires {
-				if strings.HasPrefix(k, "x") || strings.HasPrefix(k, "y") {
-					continue
-				}
-
-				g := w.(Gate)
-				if g.op == "AND" && (g.in1 == xb || g.in2 == xb) && (g.in1 == yb || g.in2 == yb) {
-					cin = k
-				}
-			}
-
+			cin = findGate(xb, yb, "AND", wires)
 			continue
 		}
 
@@ -160,8 +132,7 @@ func main() {
 		cin = cout
 	}
 
-	sort.Strings(swaps)
-	fmt.Println(strings.Join(swaps, ","))
+	return swaps
 }
 
 func findGate(in1, in2, op string, wires map[string]Wire) string {
@@ -209,16 +180,6 @@ func toNumber(x []string, wires map[string]Wire) int {
 		}
 	}
 	return num
-}
-
-func intersects(x, y map[string]struct{}) bool {
-	for k := range x {
-		if _, ok := y[k]; ok {
-			return true
-		}
-	}
-
-	return false
 }
 
 type Wire interface {
