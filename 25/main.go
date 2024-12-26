@@ -53,12 +53,9 @@ func main() {
 		}
 		curr = append(curr, line)
 	}
-	k, l := parse(curr)
-	if k != nil {
-		keys = append(keys, k)
-	}
-	if l != nil {
-		locks = append(locks, l)
+
+	if curr != nil {
+		panic(curr)
 	}
 
 	debug(keys)
@@ -85,28 +82,28 @@ func main() {
 }
 
 func parse(curr []string) ([]int, []int) {
-	if curr[0] == "#####" {
-		k := make([]int, 5)
-		for _, row := range curr[1:] {
-			for i, col := range row {
-				if col == '#' {
-					k[i] += 1
-				}
-			}
-		}
-		return k, nil
-	} else {
-		l := make([]int, 5)
-		for _, row := range curr[:len(curr)-1] {
-			for i, col := range row {
-				if col == '#' {
-					l[i] += 1
-				}
-			}
-		}
+	schematic := make([]int, 5)
 
-		return nil, l
+	var isKey bool
+	if curr[0] == "#####" {
+		curr = curr[1:]
+		isKey = true
+	} else {
+		curr = curr[:len(curr)-1]
+		isKey = false
 	}
 
-	panic(curr)
+	for _, row := range curr {
+		for i, col := range row {
+			if col == '#' {
+				schematic[i] += 1
+			}
+		}
+	}
+
+	if isKey {
+		return schematic, nil
+	}
+	return nil, schematic
+
 }
